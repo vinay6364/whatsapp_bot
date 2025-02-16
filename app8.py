@@ -1,8 +1,9 @@
 from flask import Flask, request, session
 from twilio.twiml.messaging_response import MessagingResponse
+import os
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"  # Secret key for session management
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "5f4dcc3b5aa765d61d8327deb882cf99f4dcc3b5aa765d61")  # Use environment variable for secret key
 
 @app.route("/webhook", methods=['POST'])
 def webhook():
@@ -10,10 +11,12 @@ def webhook():
     incoming_msg = request.form.get('Body', '').strip().lower()
     user_number = request.form.get("From", "")
     response = MessagingResponse()
-    
+
+    # Initialize session for users if it doesn't exist
     if "users" not in session:
         session["users"] = {}
-    
+
+    # Handle new users
     if user_number not in session["users"]:
         if incoming_msg == "start":
             session["users"][user_number] = {"name": None, "menu_shown": False}
@@ -22,15 +25,18 @@ def webhook():
         else:
             response.message("Please type 'start' to begin.")
             return str(response)
-    
+
+    # Get user data from session
     user_data = session["users"].get(user_number, {})
-    
+
+    # Handle name input
     if user_data.get("name") is None:
         session["users"][user_number]["name"] = incoming_msg.capitalize()
         response.message(f"Hello {incoming_msg.capitalize()}! Nice to meet you. Please choose an option below:\n1. Startup\n2. Call\n3. Msg\n4. Exit\n5. Restart")
         session["users"][user_number]["menu_shown"] = True
         return str(response)
-    
+
+    # Handle menu options
     if user_data.get("menu_shown"):
         if incoming_msg in ["1", "startup"]:
             response.message("Thank you for choosing Startup.\nThis feature is still in the developmental phase.")
@@ -49,8 +55,9 @@ def webhook():
         else:
             response.message("Invalid choice. Please select from:\n1. Startup\n2. Call\n3. Msg\n4. Exit\n5. Restart")
             return str(response)
-    
+
     return str(response)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Use Render's PORT or default to 5000
+    app.run(host="0.0.0.0", port=port, debug=False)  # Set debug=False for production
