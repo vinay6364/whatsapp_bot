@@ -80,6 +80,11 @@ def webhook():
 
     return str(twilio_response)
 
+# Health check route
+@app.route("/health", methods=["GET"])
+def health_check():
+    return "OK", 200  # This will be used by Render to check service health
+
 # Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True)  # Set debug=False in production
